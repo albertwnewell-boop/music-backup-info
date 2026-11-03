@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Public information about My Music Backups, a private local-library backup utility.">
+  <title>My Music Backups</title>
+  <link rel="icon" href="app-icon.png" type="image/png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <a class="identity" href="./"><img src="app-icon.png" width="40" height="40" alt=""><span>My Music Backups</span></a>
+    <nav aria-label="Information"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav>
+  </header>
+  <main>
+    <p class="eyebrow">Personal desktop utility</p>
+    <h1>My Music Backups</h1>
+    <p class="lead">Encrypted, restorable backups of a personal music library and journal from the owner's Mac to the owner's Google Drive.</p>
+    <h2>What the utility does</h2>
+    <p>The live application and SQLite database run locally. A scheduled worker captures a consistent database snapshot, includes journal media and a limited application-source archive, and encrypts the backup with Restic before transferring it through rclone.</p>
+    <p>A backup is reported as verified only after it has been downloaded into a separate restore directory and its database integrity, relationships, record counts, and file checksums have passed verification.</p>
+    <h2>Why it requests Google Drive access</h2>
+    <p>The owner authorizes the utility to create and manage its backup files in a dedicated Drive folder. It uses the <code>drive.file</code> permission, not blanket permission to read unrelated Drive files. It also checks available storage and verifies the account selected during setup.</p>
+    <h2>What is public here</h2>
+    <p>This website contains only information about the backup utility. It does not host the music application, its source code, journal entries, photos, library records, credentials, or recovery keys. There is no public sign-up or backup-upload service.</p>
+    <p>Read the <a href="privacy.html">privacy policy</a> for data handling and the <a href="terms.html">terms</a> for the scope of this personal tool.</p>
+    <h2>Contact</h2>
+    <p>For questions about this private installation, use the support email displayed on its Google authorization screen or contact the account owner who installed it.</p>
+  </main>
+  <footer>My Music Backups is an independent personal utility, not a Google or GitHub product.</footer>
+</body>
+</html>
