@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://www.youtube.com https://s.ytimg.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; style-src 'unsafe-inline'; connect-src https://www.youtube.com; img-src https://i.ytimg.com data:">
+  <title>Music Video Player</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; background: #000; color: #fff; font-family: system-ui, sans-serif; }
+    body { display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+    #screen, #player, iframe { width: 100%; height: 100%; border: 0; }
+    #controls { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 0; }
+    #controls:has(button:not([hidden])) { min-height: 44px; }
+    button { margin: 4px; padding: 8px 18px; border: 1px solid #777; border-radius: 4px; background: #222; color: white; font: inherit; cursor: pointer; }
+    #error { margin: 0; padding: 0 12px; font-size: 13px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="screen"><div id="player"></div></div>
+  <div id="controls"><p id="error" role="status"></p><button id="play" hidden>Play Video</button></div>
+  <script>
+    (() => {
+      'use strict';
+      const protocol = 'mltm-youtube-player-v1';
+      const params = new URLSearchParams(location.search);
+      const token = params.get('token');
+      const parentOrigin = params.get('parentOrigin');
+      const standalone = window.parent === window;
+      const videoPattern = /^[A-Za-z0-9_-]{11}$/;
+      let allowedParent = false;
+      try {
+        const origin = new URL(parentOrigin);
+        allowedParent = ['localhost', '127.0.0.1'].includes(origin.hostname) &&
+          ['http:', 'https:'].includes(origin.protocol) && origin.origin === parentOrigin && Boolean(token);
+      } catch {}
+      if (!standalone && !allowedParent) return;
+
+      let player;
+      let ready = false;
+      let selectedVideo = null;
+      const playButton = document.getElementById('play');
+      const errorLabel = document.getElementById('error');
+      const send = (event, details = {}) => {
+        if (!allowedParent) return;
+        window.parent.postMessage({ source: protocol, token, event, videoId: selectedVideo, ...details }, parentOrigin);
+      };
+      const progress = () => {
+        if (!ready || !selectedVideo) return;
+        send('progress', {
+          time: Number(player.getCurrentTime() || 0),
+          duration: Number(player.getDuration() || 0),
+          state: Number(player.getPlayerState()),
+        });
+      };
+      const load = id => {
+        if (!videoPattern.test(id)) return;
+        selectedVideo = id;
+        errorLabel.textContent = '';
+        playButton.hidden = true;
+        if (ready) player.loadVideoById(id);
+      };
+      playButton.addEventListener('click', () => {
+        player?.playVideo();
+      });
+      window.addEventListener('message', event => {
+        const data = event.data;
+        if (!allowedParent || event.source !== window.parent || event.origin !== parentOrigin ||
+          !data || data.source !== protocol || data.token !== token) return;
+        if (data.command === 'load' && typeof data.videoId === 'string') load(data.videoId);
+        else if (data.command === 'play' && ready) player.playVideo();
+        else if (data.command === 'stop' && ready) {
+          selectedVideo = null;
+          player.stopVideo();
+        }
+      });
+      window.onYouTubeIframeAPIReady = () => {
+        player = new YT.Player('player', {
+          width: '100%', height: '100%',
+          playerVars: { autoplay: 1, controls: 1, playsinline: 1, rel: 0, origin: location.origin },
+          events: {
+            onReady: () => {
+              ready = true;
+              send('ready');
+              if (selectedVideo) player.loadVideoById(selectedVideo);
+              if (standalone) {
+                const id = new URLSearchParams(location.hash.slice(1)).get('v');
+                if (id) load(id);
+              }
+            },
+            onStateChange: event => {
+              if (event.data === 1) {
+                playButton.hidden = true;
+                errorLabel.textContent = '';
+              }
+              progress();
+              send('state', { state: event.data });
+            },
+            onError: event => {
+              errorLabel.textContent = `YouTube playback error ${event.data}`;
+              send('error', { code: Number(event.data) });
+            },
+            onAutoplayBlocked: () => {
+              playButton.hidden = false;
+              send('autoplayBlocked');
+            },
+          },
+        });
+      };
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      script.onerror = () => {
+        errorLabel.textContent = 'YouTube could not load.';
+        send('error', { code: 0 });
+      };
+      document.head.appendChild(script);
+      window.setInterval(() => {
+        if (ready && player.getPlayerState() === 1) progress();
+      }, 250);
+    })();
+  </script>
+</body>
+</html>
