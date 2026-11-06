@@ -43,12 +43,18 @@
       let selectedVideo = null;
       const playButton = document.getElementById('play');
       const errorLabel = document.getElementById('error');
+      const isCurrentVideo = () => {
+        if (!selectedVideo || !ready) return false;
+        try {
+          return new URL(player.getVideoUrl()).searchParams.get('v') === selectedVideo;
+        } catch { return false; }
+      };
       const send = (event, details = {}) => {
         if (!allowedParent) return;
         window.parent.postMessage({ source: protocol, token, event, videoId: selectedVideo, ...details }, parentOrigin);
       };
       const progress = () => {
-        if (!ready || !selectedVideo) return;
+        if (!isCurrentVideo()) return;
         send('progress', {
           time: Number(player.getCurrentTime() || 0),
           duration: Number(player.getDuration() || 0),
@@ -91,6 +97,7 @@
               }
             },
             onStateChange: event => {
+              if (!isCurrentVideo()) return;
               if (event.data === 1) {
                 playButton.hidden = true;
                 errorLabel.textContent = '';
