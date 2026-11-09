@@ -61,12 +61,15 @@
           state: Number(player.getPlayerState()),
         });
       };
-      const load = id => {
+      const load = (id, start = 0, paused = false) => {
         if (!videoPattern.test(id)) return;
         selectedVideo = id;
         errorLabel.textContent = '';
         playButton.hidden = true;
-        if (ready) player.loadVideoById(id);
+        if (ready) {
+          if (paused) player.cueVideoById(id, start);
+          else player.loadVideoById(id, start);
+        }
       };
       playButton.addEventListener('click', () => {
         player?.playVideo();
@@ -75,8 +78,13 @@
         const data = event.data;
         if (!allowedParent || event.source !== window.parent || event.origin !== parentOrigin ||
           !data || data.source !== protocol || data.token !== token) return;
-        if (data.command === 'load' && typeof data.videoId === 'string') load(data.videoId);
+        if (data.command === 'load' && typeof data.videoId === 'string') {
+          const start = Number(data.startSeconds || 0);
+          if (Number.isFinite(start) && start >= 0 && start <= 604800) load(data.videoId, start, data.paused === true);
+        }
         else if (data.command === 'play' && ready) player.playVideo();
+        else if (data.command === 'pause' && ready && data.videoId === selectedVideo) player.pauseVideo();
+        else if (data.command === 'seek' && ready && data.videoId === selectedVideo && Number.isFinite(data.seconds) && data.seconds >= 0 && data.seconds <= 604800) player.seekTo(data.seconds, true);
         else if (data.command === 'stop' && ready) {
           selectedVideo = null;
           player.stopVideo();
