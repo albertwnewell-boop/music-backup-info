@@ -93,7 +93,7 @@
       window.onYouTubeIframeAPIReady = () => {
         player = new YT.Player('player', {
           width: '100%', height: '100%',
-          playerVars: { autoplay: 1, controls: 1, playsinline: 1, rel: 0, origin: location.origin },
+          playerVars: { autoplay: 1, controls: 1, fs: standalone ? 1 : 0, playsinline: 1, rel: 0, origin: location.origin },
           events: {
             onReady: () => {
               ready = true;
